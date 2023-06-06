@@ -1,37 +1,24 @@
+import client.CourierClient;
+import data.Courier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import utils.Generator;
 
-import static io.restassured.RestAssured.baseURI;
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class CourierLoginTest {
-
-    public static final String COURIER_ENDPOINT = "/api/v1/courier";
-
-    private String randomValue;
+public class CourierLoginTest extends TestBase {
     private String login;
     private String password;
     private String firstName;
 
     @Before
     public void setUp() {
-        baseURI = "https://qa-scooter.praktikum-services.ru";
-        login = Generator.randomString();
-        password = Generator.randomString();
-        firstName = Generator.randomString();
-        String json = "{\"login\": \"" + login + "\", " +
-                "\"password\": \"" + password + "\", " +
-                "\"firstName\": \"" + firstName + "\"}";
-        given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .post(COURIER_ENDPOINT)
+        login = faker.lorem().fixedString(15);
+        password = faker.lorem().fixedString(10);
+        firstName = faker.name().firstName();
+        Courier courier = new Courier(login, password, firstName);
+        CourierClient.create(courier)
                 .then()
                 .statusCode(201)
                 .body("ok", equalTo(true));
@@ -39,36 +26,14 @@ public class CourierLoginTest {
 
     @After
     public void tearDown() {
-        String json = "{\"login\": \"" + login + "\", \"password\": \"" + password + "\"}";
-        int id = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .post(COURIER_ENDPOINT + "/login")
-                .then()
-                .statusCode(200)
-                .body("id", notNullValue())
-                .extract().body().path("id");
-        given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .delete(COURIER_ENDPOINT + "/{id}", id)
+        CourierClient.delete(CourierClient.getId(login, password))
                 .then()
                 .statusCode(200);
     }
 
     @Test
     public void loginCourier() {
-        String json = "{\"login\": \"" + login + "\", \"password\": \"" + password + "\"}";
-        given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .post(COURIER_ENDPOINT + "/login")
+        CourierClient.login(login, password)
                 .then()
                 .statusCode(200)
                 .body("id", notNullValue());
@@ -76,13 +41,7 @@ public class CourierLoginTest {
 
     @Test
     public void loginCourierWithMissingLogin() {
-        String json = "{\"login\": \"\", \"password\": \"" + password + "\"}";
-        given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .post(COURIER_ENDPOINT + "/login")
+        CourierClient.login("", password)
                 .then()
                 .statusCode(400)
                 .body("code", equalTo(400))
@@ -91,13 +50,7 @@ public class CourierLoginTest {
 
     @Test
     public void loginCourierWithMissingPassword() {
-        String json = "{\"login\": \"" + login + "\", \"password\": \"\"}";
-        given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .post(COURIER_ENDPOINT + "/login")
+        CourierClient.login(login, "")
                 .then()
                 .statusCode(400)
                 .body("code", equalTo(400))
@@ -106,13 +59,10 @@ public class CourierLoginTest {
 
     @Test
     public void loginCourierWithInvalidCredentials() {
-        String json = "{\"login\": \"" + Generator.randomString() + "\", \"password\": \"" + Generator.randomString() + "\", \"firstName\":\"" + Generator.randomString() + "\"}";
-        given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .post(COURIER_ENDPOINT + "/login")
+        CourierClient.login(
+                        faker.lorem().fixedString(15),
+                        faker.lorem().fixedString(10)
+                )
                 .then()
                 .statusCode(404)
                 .body("code", equalTo(404))

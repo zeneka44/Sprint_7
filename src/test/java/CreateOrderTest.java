@@ -1,26 +1,22 @@
-import com.google.gson.Gson;
+import client.OrderClient;
 import data.Order;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-import static io.restassured.RestAssured.baseURI;
-import static io.restassured.RestAssured.given;
+import static java.util.concurrent.TimeUnit.DAYS;
 import static org.hamcrest.Matchers.notNullValue;
-import static utils.Generator.randomInt;
-import static utils.Generator.randomString;
 
 @RunWith(Parameterized.class)
-public class CreateOrderTest {
-    public static final String ORDERS_ENDPOINT = "/api/v1/orders";
+public class CreateOrderTest extends TestBase {
     private final String[] colors;
 
     public CreateOrderTest(String[] colors) {
         this.colors = colors;
     }
 
-    @Parameterized.Parameters
+    @Parameters
     public static Object[][] getData() {
         return new Object[][]{
                 {new String[]{"BLACK", "GREY"}},
@@ -30,20 +26,19 @@ public class CreateOrderTest {
         };
     }
 
-    @Before
-    public void setUp() {
-        baseURI = "https://qa-scooter.praktikum-services.ru";
-    }
-
     @Test
     public void createOrderWithDifferentColors() {
-        Order order = new Order(randomString(), randomString(), randomString(), randomInt(), randomString(),
-                randomInt(), randomString(), randomString(), colors);
-        given()
-                .and()
-                .body(new Gson().toJson(order))
-                .when()
-                .post(ORDERS_ENDPOINT)
+        Order order = new Order(
+                faker.name().firstName(),
+                faker.name().lastName(),
+                faker.address().fullAddress(),
+                faker.random().nextInt(1, 100),
+                faker.phoneNumber().phoneNumber(),
+                faker.random().nextInt(1, 100),
+                faker.date().future(faker.random().nextInt(1, 10), DAYS).toString(),
+                faker.lorem().fixedString(10),
+                colors);
+        OrderClient.create(order)
                 .then()
                 .statusCode(201)
                 .body("track", notNullValue());
